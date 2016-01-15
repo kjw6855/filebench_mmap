@@ -564,7 +564,7 @@ flowop_start(threadflow_t *threadflow)
 
 		if (flowop == NULL) {
 #if defined(CONFIG_MMAP) || defined(CONFIG_SIMPLE_MMAP)
-			filebench_log(LOG_ERROR, "Don't fake me!");
+			filebench_log(LOG_INFO, "Don't fake me!");
 #endif
 			filebench_log(LOG_ERROR, "flowop_read null flowop");
 			return;
@@ -878,7 +878,7 @@ flowop_define_common(threadflow_t *threadflow, char *name, flowop_t *inherit,
 		flowop->fo_next = NULL;
 		flowop->fo_exec_next = NULL;
 		filebench_log(LOG_DEBUG_IMPL,
-		    "flowop %s-%d calling init", name, instance);
+		    "flowop %s-%d calling init, inherit_filedesc %d", name, instance, inherit->fo_fdnumber);
 	} else {
 		(void) memset(flowop, 0, sizeof (flowop_t));
 		flowop->fo_iters = avd_int_alloc(1);
@@ -886,6 +886,8 @@ flowop_define_common(threadflow_t *threadflow, char *name, flowop_t *inherit,
 		(void) pthread_mutex_init(&flowop->fo_lock,
 		    ipc_mutexattr(IPC_MUTEX_PRI_ROB));
 		(void) ipc_mutex_lock(&flowop->fo_lock);
+		filebench_log(LOG_DEBUG_IMPL,
+		    "[ARCS] no-inherit flowop %s-%d calling init", name, instance);
 	}
 
 	/* Create backpointer to thread */

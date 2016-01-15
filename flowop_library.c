@@ -1645,7 +1645,7 @@ flowoplib_openfile_common(threadflow_t *threadflow, flowop_t *flowop, int fd)
 		return (FILEBENCH_ERROR);
 	}
 
-#ifdef CONFIG_MMAP
+#if defined(CONFIG_MMAP) || defined(CONFIG_SIMPLE_MMAP)
 	threadflow->openflag[fd] = openflag;
 #endif
 	filebench_log(LOG_DEBUG_SCRIPT,
@@ -2676,14 +2676,44 @@ flowoplib_testrandvar_destruct(flowop_t *flowop)
 static int
 flowoplib_mmapfile(threadflow_t *threadflow, flowop_t *flowop)
 {
-	int ret;
-	int fd;
-	fd = flowop->fo_fdnumber;
-	//filebench_log(LOG_INFO, "User-specified fd:%d, %f", fd, threadflow->tf_fse[fd]);
-	flowop_beginop(threadflow, flowop);
-	ret = FB_MMAP(100, PROT_READ, MAP_SHARED, 10, 0);
-	flowop_endop(threadflow, flowop, 0);
+	int ret, fd;
+	uint64_t wss;
+	void * ptr = (void*)-1;
+	fb_fdesc_t *fdesc;
+	int mmapprot;
+	//filesetentry_t *file;
 
+	//file = threadflow->tf_fse[fd];
+	if ((ret = flowoplib_filesetup(threadflow, flowop, &wss, &fdesc)) != FILEBENCH_OK)
+		return (ret);
+
+	fd = fdesc->fd_num;
+
+	if ((threadflow->openflag[fd] & !O_CREAT) == O_RDONLY)
+		mmapprot = PROT_READ;
+	else if ((threadflow->openflag[fd] & !O_CREAT) == O_WRONLY)
+		mmapprot = PROT_WRITE;
+	else
+		mmapprot = PROT_READ | PROT_WRITE;
+//	filebench_log(LOG_INFO, "[ARCS] file name: %s", flowop->fo_filename);
+
+	flowop_beginop(threadflow, flowop);
+	//ret = FB_MMAP(0, 0, MAP_SHARED, &threadflow->tf_fd[fd], 0);
+	//filebench_log(LOG_INFO, "[ARCS] mmapfile is called NULL, %d, %d, %d, %d, %d",
+	//	wss, 0, MAP_SHARED, fdesc->fd_num, 0);
+	ptr = FB_MMAP(NULL, (size_t)wss, mmapprot, MAP_SHARED, fdesc, 0);
+	flowop_endop(threadflow, flowop, 0);
+	
+	if(ptr == (void*)-1){
+		filebench_log(LOG_ERROR,
+				"mmap file Failed to mmap file: %s",
+				strerror(errno));
+		return (FILEBENCH_ERROR);
+	}
+	filebench_log(LOG_INFO, "[ARCS] pointer!! %p", ptr);
+	//BUG!!
+	threadflow->tf_fd[fd].mmap_ptr = ptr;
+	
 	return (ret);
 }
 
@@ -2691,9 +2721,34 @@ static int
 flowoplib_munmapfile(threadflow_t *threadflow, flowop_t *flowop)
 {
 	int ret;
+	uint64_t wss;
+	fb_fdesc_t *fdesc;
+	void * ptr;
+	int fd;
+
+	if ((ret = flowoplib_filesetup(threadflow, flowop, &wss, &fdesc)) != FILEBENCH_OK)
+		return (ret);
+
+	fd = fdesc->fd_num;
+	ptr = threadflow->tf_fd[fd].mmap_ptr;
+
+	if (ptr == NULL){
+		filebench_log(LOG_INFO, "[ARCS] mmaifile is not called!");
+		if ((ret = flowoplib_mmapfile(threadflow, flowop)) != FILEBENCH_OK)
+			return (ret);
+
+		ptr = threadflow->tf_fd[fd].mmap_ptr;
+	}
+
+	threadflow->tf_fd[fd].mmap_ptr = NULL;
+	threadflow->openflag[fd] = -1;
+	//filebench_log(LOG_INFO, "[ARCS] fd: %d, size: %d", fd, wss);
+
 	flowop_beginop(threadflow, flowop);
-	ret = FB_MUNMAP(NULL, 100);
+	//ret = FB_MUNMAP((void *)threadflow->tf_addr[fd], wss);
+	ret = FB_MUNMAP(ptr, wss);
 	flowop_endop(threadflow, flowop, 0);
+
 	return (ret);
 }
 #endif /* CONFIG_SIMPLE_MMAP */

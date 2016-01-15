@@ -706,27 +706,30 @@ fb_lfs_access(const char *path, int amode)
 {
 	return (access(path, amode));
 }
+
 #ifdef CONFIG_SIMPLE_MMAP
 static void*
 fb_lfs_mmap(void *addr, size_t size, int prot, int flags, fb_fdesc_t *fd, off_t offset)
 {
-	filebench_log(LOG_INFO, "[ARCS] fb_lfs_mmap is called(%f, %d, %d, %d, %f, %d)",
-		addr, size, prot, flags, fd, offset);
-	return 0;
+	filebench_log(LOG_INFO, "[ARCS] fb_lfs_mmap is called(%p, %d, %d, %d, %d, %d)",
+		addr, size, prot, flags, fd->fd_num, offset);
+	return (void *)0x100000;
 }
 static int
 fb_lfs_munmap(void *addr, size_t size)
 {
-	filebench_log(LOG_INFO, "[ARCS] fb_lfs_munmap is called(%f, %d)",
+	filebench_log(LOG_INFO, "[ARCS] fb_lfs_munmap is called(%p, %d)",
 		addr, size);
 	return 0;
 }
 #endif
+
+//#if defined(CONFIG_SIMPLE_MMAP) || defined(CONFIG_MMAP)
 #ifdef CONFIG_MMAP
 static void*
 fb_lfs_mmap(void *addr, size_t size, int prot, int flags, fb_fdesc_t *fd, off_t offset)
 {
-	return (mmap(addr, size, prot, flags, fd->fd_num, offset));
+	return (mmap64(addr, size, prot, flags, fd->fd_num, offset));
 }
 
 #ifdef CONFIG_MAPPING_CACHE

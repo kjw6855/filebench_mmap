@@ -44,6 +44,9 @@ typedef enum fb_plugin_type {
 typedef union fb_fdesc {
 	int		fd_num;		/* OS file descriptor number */
 	void		*fd_ptr;	/* Pointer to nfs information block */
+#ifdef CONFIG_SIMPLE_MMAP
+	void		*mmap_ptr;
+#endif
 } fb_fdesc_t;
 
 typedef struct aiolist aiol_t;
@@ -152,8 +155,8 @@ extern fsplug_func_t *fs_functions_vec;
 	(*fs_functions_vec->fsp_symlink)(name1, name2)
 
 #if defined(CONFIG_MMAP) || defined(CONFIG_SIMPLE_MMAP)
-#define FB_MMAP(size, prot, flags, fdesc, amnt) \
-	(*fs_functions_vec->fsp_mmap)(NULL, size, prot, flags, fdesc, amnt)
+#define FB_MMAP(addr, size, prot, flags, fdesc, amnt) \
+	(*fs_functions_vec->fsp_mmap)(addr, size, prot, flags, fdesc, amnt)
 
 #ifdef CONFIG_MAPPING_CACHE
 #define FB_MUNMAP(addr, size, flags) \

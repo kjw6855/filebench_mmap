@@ -54,4 +54,4 @@ usage "       set \$nthreads=<value>  defaults to $nthreads"
 usage "       set \$iosize=<size>     defaults to $iosize"
 usage "       run runtime (e.g. run 60)"
 
-run 60
+run 6

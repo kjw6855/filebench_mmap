@@ -73,9 +73,9 @@ typedef struct threadflow {
 	aiolist_t	*tf_aiolist;	/* List of async I/Os */
 #endif
 	avd_t		tf_ioprio;	/* ioprio attribute */
-#ifdef CONFIG_MMAP
+#if defined(CONFIG_MMAP) || defined(CONFIG_SIMPLE_MMAP)
 	int		openflag[THREADFLOW_MAXFD + 1];
-	void *	addr[THREADFLOW_MAXFD + 1];
+	//uint64_t	tf_addr[THREADFLOW_MAXFD + 1];
 #endif
 
 } threadflow_t;
